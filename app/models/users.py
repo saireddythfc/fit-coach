@@ -3,7 +3,6 @@
 from sqlalchemy import Column, Integer, String
 from app.db import Base
 from sqlalchemy.orm import relationship
-from log_entries import LogEntry
 
 
 class User(Base):
@@ -15,5 +14,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
 
     # Inside the User class
-    log_entries = relationship("LogEntry", back_populates="users")
+    log_entries = relationship("LogEntry", back_populates="user")
+    goals = relationship("Goal", back_populates="user")
+    weekly_plans = relationship("WeeklyPlan", back_populates="user")
     # Add other fields as needed
