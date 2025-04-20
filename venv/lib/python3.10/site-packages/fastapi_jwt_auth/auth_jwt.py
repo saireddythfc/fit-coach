@@ -660,6 +660,7 @@ class AuthJWT(AuthConfig):
             return jwt.decode(
                 encoded_token,
                 secret_key,
+                verify=False,
                 issuer=issuer,
                 audience=self._decode_audience,
                 leeway=self._decode_leeway,

@@ -3,7 +3,7 @@ from datetime import timedelta
 from fastapi import Depends
 from fastapi_jwt_auth import AuthJWT
 from passlib.context import CryptContext
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
