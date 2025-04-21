@@ -8,13 +8,16 @@ from app.models.users import User
 from app.models.goals import Goal
 from app.models.weekly_plans import WeeklyPlan
 from app.models.log_entries import LogEntry
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 
 @router.post("/")
-def chat_with_ai(
+async def chat_with_ai(
     query: dict, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()
 ):
     Authorize.jwt_required()
@@ -39,7 +42,7 @@ def chat_with_ai(
     logs = (
         db.query(LogEntry)
         .filter_by(user_id=user.id)
-        .order_by(LogEntry.timestamp.desc())
+        .order_by(LogEntry.created_at.desc())
         .limit(5)
         .all()
     )
@@ -49,22 +52,32 @@ def chat_with_ai(
     context += f"Weekly Plan Start: {plan.week_start if plan else 'N/A'}\n"
     context += "Recent Activities:\n"
     for log in logs:
-        context += f"- {log.action} at {log.timestamp}\n"
+        context += f"- Calories in:{log.calories_in} and Calories_out:{log.calories_out} at {log.created_at}\n"
 
     # Initialize AI Engine
-    api_key = os.getenv("FETCHAI_API_KEY")
-    email = os.getenv("FETCHAI_EMAIL")
-    function_group = os.getenv("FETCHAI_FUNCTION_GROUP")
+
+    api_key = os.environ.get("FETCHAI_API_KEY")
+    email_id = os.environ.get("FETCHAI_EMAIL")
+
     ai_engine = AiEngine(api_key)
 
+    function_groups = await ai_engine.get_function_groups()
+    functionGroupId = None
+
+    for group in function_groups:
+        if group.name == "Fetch Verified":
+            functionGroupId = group.uuid
+            break
+
+    if functionGroupId is None:
+        raise Exception('Could not find "Public" function group.')
+
     # Create session
-    session = ai_engine.create_session(
-        email=email, requested_model="talkative-01", function_group=function_group
-    )
-    session.start(objective=query.get("message"), context=context)
+    session = await ai_engine.create_session(function_group=functionGroupId)
+    await session.start(objective=query.get("message"), context=context)
 
     # Retrieve response
-    messages = session.get_messages()
+    messages = await session.get_messages()
     if messages:
         return {"response": messages[-1].content}
     else:
